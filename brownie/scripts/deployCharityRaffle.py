@@ -1,14 +1,15 @@
-import brownie
 from scripts.helpers import get_account, get_contract, fund_link, LOCAL_BLOCKCHAIN_ENVIRONMENTS
 from brownie import network, accounts, config, CharityRaffle
 import time
 
 ticketPrice = 0.01*10**18
+exp_time = 120
 
 def deploy_raffle_contract():
     account = get_account(id="test1")
     print("account:", account)
     raffle = CharityRaffle.deploy(
+        exp_time,
         get_contract("vrf_coordinator").address,
         get_contract("link_token").address,
         config["networks"][network.show_active()]["fee"],
@@ -72,11 +73,15 @@ def fake_VRF_response(requestId, value):
     callTx.wait(1)
     print("Fake VRF response done", callTx.events)
 
+def get_balance(id, account):
+    return get_raffle().GetRaffleBalance(id, account)
+
 def main():
-    raffle_time = 600
+    raffle_time = 20
+    
     get_raffle()
     id = create_raffle("Test Raffle 2", ticketPrice, raffle_time)
-    id = 2
+    id = 1
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         print("Rinkeby")
         get_raffle_info(id)
@@ -85,7 +90,6 @@ def main():
         enter_raffle(id, ticketCount=3, account=get_account(id="test2"))
         get_raffle_info(id)
         enter_raffle(id, ticketCount=7, account=get_account(id="test3"))
-        get_raffle_info(id)
     else:
         print("Local")
         get_raffle_info(id)
@@ -94,8 +98,8 @@ def main():
         enter_raffle(id, ticketCount=3, account=get_account(index=1))
         get_raffle_info(id)
         enter_raffle(id, ticketCount=7, account=get_account(index=2))
-        get_raffle_info(id)
     get_raffle_info(id)
+    print("Test1",get_balance(id, get_account(index=2).address))
     time.sleep(raffle_time) # Wait for the raffle to end
     print("Waited")
     fund_link(get_raffle().address)
@@ -103,7 +107,7 @@ def main():
     print("Accounts:", [i for i in accounts])
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:  
         print("Fake VRF response")
-        fake_VRF_response(requestId, 11)
+        fake_VRF_response(requestId, 3)
         time.sleep(1)
     else:
         time.sleep(200)

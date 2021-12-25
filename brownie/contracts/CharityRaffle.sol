@@ -14,10 +14,12 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
     uint256 public linkFee;
     bytes32 public VRFKeyHash;
     // A contstructor to deal with randomness
-    constructor(address _vrfCoordinator, address _linkTokenAddress, uint256 _linkFee, bytes32 _VRFKeyHash) VRFConsumerBase(_vrfCoordinator,_linkTokenAddress){
+    uint256 public expirationPeriod;
+    constructor(uint256 _expirationPeriod, address _vrfCoordinator, address _linkTokenAddress, uint256 _linkFee, bytes32 _VRFKeyHash) VRFConsumerBase(_vrfCoordinator,_linkTokenAddress){
         linkFee = _linkFee;
         VRFKeyHash = _VRFKeyHash;
         linkTokenAddress = _linkTokenAddress;
+        expirationPeriod = _expirationPeriod;
     }
 
     event RequestRandomness(bytes32 requestId);
@@ -25,7 +27,6 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
 
     enum RaffleState {
         Open,
-        Closed,
         SelectingWinner,
         Finished,
         Expired 
@@ -47,8 +48,9 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         uint256 startTime; // unix timestamp of the start of the raffle
         uint256 endTime; // unix timestamp of the end of the raffle
         RaffleState state; // state of the raffle
-        address payable[] ticketOwners; // list of all of the ticket owners which is linked to the ticketCount
-        uint256[] ticketNumbers; // list of all the ticketNumbers linked to the ticketOwners
+        mapping(address => uint256) ticketBalances; // mapping of address to ticket count
+        address[] ticketOwners; // array of addresses of the ticket owners (used for iteration through the ticket balances)
+        bool payedOut; // whether the raffle has been payed out
     }
 
     // Some rules of how raffles work
@@ -56,7 +58,6 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
     // 2. Anyone can buy tickets for any open raffle, and this can be for multiple raffles
     // 3. Tickets are only refundable if the raffle expires, this means that the beneficiary has not claimed the raffle a week after it's end
     // 4. The beneficiary can only end the raffle after the end time
-    uint256 public constant expirationPeriod = 7 * 24 * 60 * 60; // 7 days in seconds
 
     Counters.Counter public RaffleCount;
     mapping(uint256 => Raffle) public Raffles; // mapping of raffle id to raffle data
@@ -90,6 +91,10 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         return (Raffles[_id].name, Raffles[_id].startTime, Raffles[_id].endTime, Raffles[_id].ticketCount, Raffles[_id].ticketPrice);
     }
 
+    function GetRaffleBalance(uint256 _id, address owner) public view returns (uint256 balance) {
+        return Raffles[_id].ticketBalances[owner];
+    }
+
     function GetRaffleCount() public view returns (uint256) {
         return RaffleCount.current();
     }
@@ -98,7 +103,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         require(msg.sender == Raffles[_id].beneficiary, "Only the beneficiary can claim the raffle");
         require(block.timestamp >= Raffles[_id].endTime, "The raffle has not closed yet");
         require(Raffles[_id].endTime + expirationPeriod > block.timestamp, "The raffle has expired and cannot be claimed");
-        require(Raffles[_id].state != RaffleState.Finished, "The raffle is allready finished");
+        require(Raffles[_id].state == RaffleState.Open, "The raffle is not avaible for claiming");
         require(IERC20(linkTokenAddress).balanceOf(address(this)) >=  linkFee, "The contract needs to be paid link token to claim the raffle");
         Raffles[_id].state = RaffleState.SelectingWinner;
         // Fire off the VRF to select the winner
@@ -118,13 +123,15 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         uint256 ticketCounter = 0;
         uint256 l = Raffles[raffleId].ticketOwners.length;
         for (uint256 i = 0; i < l; i++) {
-            if (ticketCounter <= winningTicketIndex && winningTicketIndex < ticketCounter + Raffles[raffleId].ticketNumbers[i]) { // We have found the winning ticket
-                Raffles[raffleId].winner = Raffles[raffleId].ticketOwners[i];
+            uint256 balance = Raffles[raffleId].ticketBalances[Raffles[raffleId].ticketOwners[i]];
+            if (ticketCounter <= winningTicketIndex && winningTicketIndex < ticketCounter + balance) { // We have found the winning ticket
+                Raffles[raffleId].winner = payable(Raffles[raffleId].ticketOwners[i]);
+                break;
             }
-            ticketCounter += Raffles[raffleId].ticketNumbers[i];
+            ticketCounter += balance;
         }
         // Send the raffle money to the beneficiary
-        payable(Raffles[raffleId].beneficiary).call{value: Raffles[raffleId].ticketPrice * Raffles[raffleId].ticketCount}("");
+        (Raffles[raffleId].payedOut, ) = payable(Raffles[raffleId].beneficiary).call{value: Raffles[raffleId].ticketPrice * Raffles[raffleId].ticketCount}("");
         emit WinnerChosen(raffleId, Raffles[raffleId].winner, winningTicketIndex);
     }
 
@@ -135,8 +142,11 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         require(_ticketCount > 0, "Ticket count must be greater than 0");
         require(msg.value >= Raffles[raffleId].ticketPrice * _ticketCount, "Ticket price is greater than the amount sent");
         Raffles[raffleId].ticketCount += _ticketCount;
-        Raffles[raffleId].ticketOwners.push(payable(msg.sender));
-        Raffles[raffleId].ticketNumbers.push(_ticketCount);
+        if (Raffles[raffleId].ticketBalances[msg.sender] == 0) { // This will be a list of all of the unique ticket owners (in the order they buy them but that dosent matter dose it)
+            Raffles[raffleId].ticketOwners.push(msg.sender);
+        }
+        Raffles[raffleId].ticketBalances[msg.sender] += _ticketCount;
+        // If the buyer is not in the ticket owners array, add him
         change += msg.value - Raffles[raffleId].ticketPrice * _ticketCount;
     }
 
@@ -150,4 +160,16 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
     }
 
     // A function for ticket buys to be refunded all the tickets they own
+    function TicketRefund(uint256 raffleId) public{
+        require(block.timestamp >= Raffles[raffleId].endTime + expirationPeriod, "The refund period has not ended yet");
+        require(Raffles[raffleId].state != RaffleState.Finished, "The raffle is finished");
+        require(Raffles[raffleId].state != RaffleState.SelectingWinner, "The raffle is selecting a winner.");
+        // Update the expiration of the raffle
+        Raffles[raffleId].state = RaffleState.Expired;
+        // Send the money back to the buyer
+        (bool transfered, ) = payable(msg.sender).call{value: Raffles[raffleId].ticketPrice * Raffles[raffleId].ticketBalances[msg.sender]}("");
+        if (transfered) {
+            Raffles[raffleId].ticketBalances[msg.sender] = 0;
+        }
+    }
 }

@@ -9,7 +9,12 @@ def get_account(index = 0, id = None): # Automaticaly gets a good account
         return accounts.load(id)
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS or network.show_active() in FORKED:
         return accounts[index]
-    return accounts.add(config["wallets"]["from_key"])
+    return accounts.load("test1")
+
+def smart_get_account(index):
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        return accounts[index]
+    return accounts.load("test"+str(index+1))
 
 contract_to_mock = {
  "vrf_coordinator": VRFCoordinatorMock,
@@ -35,7 +40,9 @@ def get_contract(contract_name):
     return contract 
 
 def fund_link(contract_address, account = None, link = None, amount = 0.1*10**18):
-    account = account if account else get_account(id="test1")
+    account = account if account else (
+        get_account(id="test1") if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS else get_account(index=0)
+    )
     link = link if link else get_contract("link_token")
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS: link.fund({'from': account}) # Gime link
     print("link:", link, "balance", link.balanceOf(account))
