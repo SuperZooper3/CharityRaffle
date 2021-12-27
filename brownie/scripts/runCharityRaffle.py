@@ -3,7 +3,7 @@ from brownie import network, accounts, config, CharityRaffle
 import time
 
 ticketPrice = 0.01*10**18
-exp_time = 120
+exp_time = 604800
 
 def deploy_raffle_contract():
     account = get_account(id="test1")
