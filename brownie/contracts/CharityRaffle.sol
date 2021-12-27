@@ -24,6 +24,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
 
     event RequestRandomness(bytes32 requestId);
     event WinnerChosen(uint256 raffleId, address payable winner, uint256 ticketIndex);
+    event RaffleCreated(address beneficiary, uint256 raffleId);
 
     enum RaffleState {
         Open,
@@ -79,7 +80,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         raffle.endTime = block.timestamp + _raffleLength;
         raffle.state = RaffleState.Open;
         raffle.winner = payable(0x0);
-        return _id;
+        emit RaffleCreated(raffle.beneficiary, _id);
     }
 
     // Some reader functions for getting info about raffles
