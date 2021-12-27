@@ -32,9 +32,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         Finished,
         Expired 
     }
-    // NotStarted: The raffle has not yet begun
     // Open: The raffle is open for entry
-    // Closed: The raffle is closed for entry
     // SelectingWinner: The raffle is closed and the winner is being selected
     // Finished: The raffle is finished and the winner has been selected, beneficiary has been paid
     // Expired: The raffle has expired since the benificiary has not ended it
@@ -51,7 +49,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
         RaffleState state; // state of the raffle
         mapping(address => uint256) ticketBalances; // mapping of address to ticket count
         address[] ticketOwners; // array of addresses of the ticket owners (used for iteration through the ticket balances)
-        bool payedOut; // whether the raffle has been payed out
+        bool paidOut; // whether the raffle has been payed out
     }
 
     // Some rules of how raffles work
@@ -132,7 +130,7 @@ contract CharityRaffle is Ownable, VRFConsumerBase {
             ticketCounter += balance;
         }
         // Send the raffle money to the beneficiary
-        (Raffles[raffleId].payedOut, ) = payable(Raffles[raffleId].beneficiary).call{value: Raffles[raffleId].ticketPrice * Raffles[raffleId].ticketCount}("");
+        (Raffles[raffleId].paidOut, ) = payable(Raffles[raffleId].beneficiary).call{value: Raffles[raffleId].ticketPrice * Raffles[raffleId].ticketCount}("");
         emit WinnerChosen(raffleId, Raffles[raffleId].winner, winningTicketIndex);
     }
 
