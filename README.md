@@ -74,6 +74,29 @@ The number of seconds before a raffle expires (by design should be a week).
 These are the addresses of the LINK token on the given network, the LINK fee needed to call the VRF, and the VRF key hash.
 Read more at https://docs.chain.link/docs/chainlink-vrf/.
 
+## Brownie Setup
+- Install all the dependencies in requirements.txt using `pip install -r requirements.txt` (preferably using a virtual environment)
+- Add a .env file to /brownie with in it:
+  - An infura key for easy network access in `WEB3_INFURA_PROJECT_ID` 
+  - An etherscan API tokoen for contract verification in `ETHERSCAN_TOKEN`
+- `cd brownie` && `brownie compile` to compile the smart contract
+- Use `brownie test` to test the smart contract.
+- Use `brownie run scripts\deploy.py` to deploy the smart contract to a local network. (Add the --network NETWORKNAME flag to deploy it to a real network).
+
+## Interacton with the frontend
+If you want to use this smart contract with a frontend, I have made one at https://github.com/SuperZooper3/charity-raffle-front-end. There is a running version at https://eth-charity-raffle.herokuapp.com/.
+
+If you want to test the frontend locally with this smart contract, make sure to put the two repositories in the same directory. Ex:
+...\Blockchain:
+  -> charity-raffle-front-end
+  -> CharityRaffle
+
+## Futre Improvements
+- Add an automatic NFT given out to the winner as some kind of a prize.
+- Let raffles be created for beneciaries other than the raffle creator.
+- Let raffle creators add other NFT or ERC20 tokens as raffle prizes.
+- Accept ERC20 tokens for raffles.
+
 ## Warnings
 This contract has not been audited and it is my first real smart contract so I do not expect it to be perfect. It has been tested extensively and is working as intended on a local machine and on the Rinkeby Testnet but might not work on other networks.
 It comes as is with no warranty and is not intended for use in production.
