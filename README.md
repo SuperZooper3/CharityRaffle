@@ -23,6 +23,12 @@ A raffle is composed of:
   - Expired: 3
 - A bool to track if the winnings have been paid out (paidOut- bool)
 
+## Raffle Rules
+1. Anyone can make a new raffle
+2. Anyone can buy tickets for any open raffle, and this can be for multiple raffles
+3. Tickets are only refundable if the raffle expires, this means that the beneficiary has not claimed the raffle a week after it's end
+4. The beneficiary can only end the raffle after the end time
+
 ## Funcitons
 ### CreateRaffle
 `CreateRaffle(string memory _raffleName, uint256 _ticketPrice, uint256 _raffleLength) public returns(uint256 raffleId)`
@@ -73,6 +79,11 @@ The number of seconds before a raffle expires (by design should be a week).
 ### linkTokenAddress, linkFee, VRFKeyHash
 These are the addresses of the LINK token on the given network, the LINK fee needed to call the VRF, and the VRF key hash.
 Read more at https://docs.chain.link/docs/chainlink-vrf/.
+
+## Contract Dependencies
+- [Chainlink VRF](https://docs.chain.link/docs/chainlink-vrf/) to generate randomness for the winner.
+- [OpenZepplin Counters](https://docs.openzeppelin.com/contracts/4.x/api/utils#Counters) to get raffle Ids.
+- [OpenZepplin Access Control](https://docs.openzeppelin.com/contracts/4.x/access-control) to track the owner for change collection.
 
 ## Brownie Setup
 - Install all the dependencies in requirements.txt using `pip install -r requirements.txt` (preferably using a virtual environment)
