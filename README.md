@@ -29,7 +29,7 @@ A raffle is composed of:
 3. Tickets are only refundable if the raffle expires, this means that the beneficiary has not claimed the raffle a week after it's end
 4. The beneficiary can only end the raffle after the end time
 
-## Funcitons
+## Functions
 ### CreateRaffle
 `CreateRaffle(string memory _raffleName, uint256 _ticketPrice, uint256 _raffleLength) public returns(uint256 raffleId)`
 This function takes in the name of the raffle (a string), the ticket price (in WEI), and the length of the raffle (in seconds).
