@@ -1,6 +1,8 @@
 # CharityRaffle
  An Ethereum Smart Contract CharityRaffle.
  **Currently only on RINKEBY**
+ 
+ **NOT TO BE USED ON MAINNET (see Warnings)**
 
 ## Description
 This smart contract is used to create a raffle for a charity.
@@ -111,3 +113,7 @@ If you want to test the frontend locally with this smart contract, make sure to 
 ## Warnings
 This contract has not been audited and it is my first real smart contract so I do not expect it to be perfect. It has been tested extensively and is working as intended on a local machine and on the Rinkeby Testnet but might not work on other networks.
 It comes as is with no warranty and is not intended for use in production.
+
+Known issues:
+- Because of the selection system's O(n) cost, if there are too many entrants, the selection could fail
+- If the VRF fails to respond, the system's actions are unspecified
