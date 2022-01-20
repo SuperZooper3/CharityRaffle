@@ -41,10 +41,10 @@ def get_raffle_info(id):
     name, startTime, endTime, ticketCount, ticketPrice = raffle.GetRaffleTicketInfo(id)
     print("RaffleId", id, "RaffleName", name, "Beneficiary", beneficiary, "Winner", winner, "StartTime", startTime, "EndTime", endTime, "TicketCount", ticketCount, "TicketPrice", ticketPrice)
 
-def enter_raffle(id, account, ticketCount = 1, ammount = 0):
+def enter_raffle(id, account, ticketCount = 1, price = 0):
     raffle = get_raffle()
-    ammount = ticketPrice * ticketCount if ammount == 0 else ammount
-    enterTx = raffle.BuyTickets(id, ticketCount, {'from': account, 'value': ammount})
+    price = ticketPrice * ticketCount if price == 0 else price
+    enterTx = raffle.BuyTickets(id, ticketCount, {'from': account, 'value': price})
     enterTx.wait(1)
     print("Entered raffle")
 
